@@ -11,6 +11,8 @@ In this project, I will use natural language processing to generate insights int
 
 * Conduct a simple sentiment analysis to a set of documents
 * Understand and apply a latent dirichlet allocation (LDA) to a set of documents
+* Visualize sentiment scores and frequent topics in students' notes by week
+<img width="650" alt="Sentiment Analysis with Topics" src="https://user-images.githubusercontent.com/47013908/95776806-09daeb80-0c93-11eb-95df-634918301be5.png">
 
 ## Packages Required
 ```
@@ -19,6 +21,8 @@ install.packages("SnowballC")
 install.packages("wordcloud")
 install.packages("ggplot2")
 install.packages("topicmodels")
+install.packages(dplyr)
+install.packages(tidyr)
 ```
 ## Background
 The use of natural language processing has exploded over the last decade. Appilcations that require machines to understand natural human speech patterns are abundant and substantial improvements in these systems has increased their utility. Within the educational space NLP is used to interpret human speech for the prupose of understanding human problems and recently an online tutor passed a limited version of the [Turing Test](https://en.wikipedia.org/wiki/Turing_test) when it was [indistinguishable from teaching assistants in a college class](http://www.news.gatech.edu/2017/01/09/jill-watson-round-three).
