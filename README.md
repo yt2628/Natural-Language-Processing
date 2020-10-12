@@ -7,6 +7,10 @@ In this project, I will use natural language processing to generate insights int
 * Understand the basic process of natural language proceessing and the role of pre-processing text
 
 * Generate a word cloud for frequent words
+<<<<<<< HEAD
+=======
+<img width="350" alt="wordcloud" src="https://user-images.githubusercontent.com/47013908/95770939-30475980-0c88-11eb-96ce-cc3774d02b95.png", width=600>
+>>>>>>> 99aa133c93cc67394f49531a0fab25eabef35b95
 * Conduct a simple sentiment analysis to a set of documents
 * Understand and apply a latent dirichlet allocation (LDA) to a set of documents
 
