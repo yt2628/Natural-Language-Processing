@@ -1,0 +1,187 @@
+---
+title: "Natural Language Processing"
+author: "Eva Tao"
+date: "05/02/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+```{r}
+#Load the following libraries
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(topicmodels)
+```
+
+## Import all document files and the list of weeks file
+```{r}
+# Create a list of all the files
+
+getwd() # check working directory
+file.list <- list.files(path = "./class-notes", pattern = ".csv",
+                        full.names = TRUE) #produce a character vector of the names of files
+
+# Loop over file list, import them and bind them together
+D1 <- do.call("rbind",                                      #executes the function rbind() to the loaded csv files
+              lapply(                                       #apply the "read.csv" function over a list or a vector
+                     grep(".csv", file.list, value = TRUE), #search for matches to regular expressions
+                          read.csv, header = TRUE, stringsAsFactors = FALSE))
+# Load the week list
+D2 <- read.csv("week-list.csv", header = TRUE)
+```
+
+## Clean the htlm tags from the text
+```{r}
+D1$Notes2 <- gsub("<.*?>", "", D1$Notes)
+D1$Notes2 <- gsub("nbsp", "" , D1$Notes2)
+D1$Notes2 <- gsub("nbspnbspnbsp", "" , D1$Notes2)
+```
+
+## Process text using the tm package
+```{r}
+#Convert the data frame to the corpus format that the tm package uses
+corpus <- VCorpus(VectorSource(D1$Notes2))
+#Remove spaces
+corpus <- tm_map(corpus, stripWhitespace)
+#Convert to lower case
+corpus <- tm_map(corpus, tolower)
+#Remove pre-defined english stop words ('the', 'a', etc)
+corpus <- tm_map(corpus, removeWords, stopwords('english'))
+#Convert words to stems for analysis (e.g. "education" to "edu")
+corpus <- tm_map(corpus, stemDocument)
+#Remove numbers
+corpus <- tm_map(corpus, removeNumbers)
+#remove punctuation
+corpus <- tm_map(corpus, removePunctuation)
+#Convert to plain text for mapping by wordcloud package
+corpus <- tm_map(corpus, PlainTextDocument, lazy = TRUE)
+
+#Convert corpus to a term document matrix - so each word can be analyzed individuallly
+tdm.corpus <- TermDocumentMatrix(corpus)
+
+#Note: we won't remove plural words here, plural words in English tend to be highly irregular and difficult to extract reliably
+```
+
+In the above process, spaces in the text are removed, all words are converted to lower 
+case and stemmed, stop words that have no meanings in analysis are removed, and number 
+and punctuations are also removed. This makes it possible for computer to recognize 
+meaningful segments of words.
+
+## Find common words
+```{r}
+# Find the frequent words that appeared more than 200 times
+findFreqTerms(tdm.corpus, lowfreq=200, highfreq=Inf)
+
+# Create a vector of the word frequencies
+word.count <- sort(rowSums(as.matrix(tdm.corpus)), decreasing=TRUE)
+word.count <- data.frame(word.count)
+head(word.count, n=10) # top 10 words with their frequencies
+```
+
+## Generate a Word Cloud
+
+### ColorBrewer
+```{r}
+# Define the colors the cloud will use
+col=brewer.pal(6,"Dark2")
+png("wordcloud.png") # save the plot to png
+# Generate cloud with words whose frequency is over 100
+wordcloud(corpus, min.freq=100, scale=c(5,2),rot.per = 0.25,
+          random.color=T, max.word=45, random.order=F,colors=col)
+```
+
+## Merge with week list so we have a variable representing weeks for each entry 
+```{r}
+dim(D1)
+D3 <- merge(D1, D2, by.x = "Title", by.y = "Title")
+```
+
+# Sentiment Analysis
+
+### Match words in corpus to lexicons of positive & negative words
+```{r}
+# Load positive and negative word lexicons from txt files
+positive <- readLines("positive-words.txt")
+negative <- readLines("negative-words.txt")
+
+# Search for matches between each word and the two lexicons
+D1$positive <- tm_term_score(tdm.corpus, positive)
+D1$negative <- tm_term_score(tdm.corpus, negative)
+
+# Generate an overall pos-neg score for each line
+D1$score <- D1$positive - D1$negative
+
+```
+
+## Generate a visualization of the sum of the sentiment score over weeks
+```{r}
+D4 <- select(D3, week, score)
+D5 <- D4 %>% 
+    group_by(week) %>% 
+    summarise(sentiment_week = sum(score))
+ggplot(data=D5, aes(x=week, y=sentiment_week)) + 
+      geom_col(fill="blue") + 
+      labs(x="Week", y="Overall Sentiment Score") + 
+      scale_x_continuous(breaks=c(2:14))
+```
+
+# LDA Topic Modelling
+
+The LDA analysis treats each row of the data frame as a document.
+In our dataset, each row represents an individual student's notes.
+
+```{r}
+#Term Frequency Inverse Document Frequency
+dtm.tfi <- DocumentTermMatrix(corpus, control = list(weighting = weightTf))
+
+#Remove very uncommon terms (term freq inverse document freq < 0.1)
+dtm.tfi <- dtm.tfi[,dtm.tfi$v >= 0.1]
+
+#Remove non-zero entries
+rowTotals <- apply(dtm.tfi, 1, sum) #Find the sum of words in each Document
+dtm.tfi <- dtm.tfi[rowTotals>0, ]
+
+lda.model = LDA(dtm.tfi, k = 4, seed = 150)
+
+#Which terms are most common in each topic
+as.data.frame(terms(lda.model))
+
+#Which documents belong to which topic
+as.data.frame(topics(lda.model))
+```
+
+Update the sentiment analysis visualization with the most important topic of that week
+```{r}
+D6 <- data.frame(topics(lda.model))
+D6$column <- row.names(D6)
+D7 <- D1
+D7$column <- row.names(D7)
+D8 <- merge(D7, D6, by = "column")
+D9 <- merge(D8, D2, by = "Title")
+D10 <- select(D9, week, score, topics.lda.model.)
+D11 <- D10 %>%
+    group_by(week) %>%
+    slice(which.max(table(topics.lda.model.))) %>%
+    select(-score)
+names(D11) <- c("week","topic")
+D12 <- merge(D11, D5, by = "week")
+D13 <- data.frame(terms(lda.model))
+names(D13) <- c("topic.name")
+D13$topics<- seq.int(nrow(D13))
+names(D13) <- c("topic.name","topic")
+D14 <- merge(D12, D13, by="topic")
+ggplot(data=D14, aes(x=week, y=sentiment_week, fill=topic.name))+ 
+      geom_col() + 
+      labs(x="Week", y="Overall Sentiment Score") + 
+      scale_x_continuous(breaks=c(2:14)) + 
+      scale_fill_discrete(name = "Most Frequent \n Topic of \n the Week")
+```
+
