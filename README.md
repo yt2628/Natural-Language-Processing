@@ -5,6 +5,7 @@ In this project, I will use natural language processing to generate insights int
 
 ## Tasks
 * Understand the basic process of natural language proceessing and the role of pre-processing text
+
 * Generate a word cloud for frequent words
 * Conduct a simple sentiment analysis to a set of documents
 * Understand and apply a latent dirichlet allocation (LDA) to a set of documents
@@ -34,6 +35,3 @@ The use of natural language processing has exploded over the last decade. Appilc
 [Raval, S. (2016). Sentiment Analysis in 4 Minutes.](https://www.youtube.com/watch?v=AJVP96tAWxw)
 
 [Knispelis, A. (2016). LDA Topic Models.](https://www.youtube.com/watch?v=3mHy4OSyRf0)
-
-~~[Jurafsky, D. & Manning, C. (2016). What is Sentiment Analysis? Stanford: Palo Alto, CA](https://www.youtube.com/watch?v=sxPBv4Skj98)
-[Knispelis, A. (2016). LDA Topic Models.](https://www.youtube.com/watch?v=3mHy4OSyRf0)~~ 
